@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartWaste - Smart Waste Management & Reporting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <nav class="navbar" id="main-nav">
+        <div class="nav-brand">
+            <i class="fa-solid fa-leaf"></i> SmartWaste
+        </div>
+        <div class="nav-links" id="nav-links-container"></div>
+        <div class="hamburger" id="hamburger">
+            <i class="fa-solid fa-bars"></i>
+        </div>
+    </nav>
+
+    <div class="app-container" id="app-container" style="display: none;">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-content">
+            <!-- CITIZEN VIEWS -->
+            <div id="view-citizen-dashboard" class="view">
+                <header class="view-header">
+                    <h2 id="welcome-message">Welcome back, Citizen</h2>
+                </header>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="icon-bg blue"><i class="fa-solid fa-file-alt"></i></div><div class="stat-info"><h3>Total Complaints</h3><p id="c-stat-total">0</p></div></div>
+                    <div class="stat-card"><div class="icon-bg orange"><i class="fa-solid fa-clock"></i></div><div class="stat-info"><h3>Pending</h3><p id="c-stat-pending">0</p></div></div>
+                    <div class="stat-card"><div class="icon-bg green"><i class="fa-solid fa-check-circle"></i></div><div class="stat-info"><h3>Resolved</h3><p id="c-stat-resolved">0</p></div></div>
+                    <div class="stat-card"><div class="icon-bg purple"><i class="fa-solid fa-leaf"></i></div><div class="stat-info"><h3>Eco Points</h3><p id="c-stat-points">0</p></div></div>
+                </div>
+                <div class="card mt-2">
+                    <h3>Recent Complaints</h3>
+                    <div class="table-responsive">
+                        <table id="citizen-complaints-table">
+                            <thead><tr><th>ID</th><th>Type</th><th>Location</th><th>Date</th><th>Priority</th><th>Status</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-report" class="view">
+                <header class="view-header"><h2>Report Waste Issue</h2></header>
+                <div class="card">
+                    <form id="report-form">
+                        <div class="form-group">
+                            <label>Waste Issue Type</label>
+                            <select id="report-type" required>
+                                <option value="Overflowing Bin">Overflowing Bin</option>
+                                <option value="Garbage on Road">Garbage on Road</option>
+                                <option value="Illegal Dumping">Illegal Dumping</option>
+                                <option value="Missed Collection">Missed Collection</option>
+                                <option value="Open Garbage Area">Open Garbage Area</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload Photo</label>
+                            <input type="file" id="report-photo" accept="image/*" required>
+                            <img id="photo-preview" class="image-preview" style="display:none;">
+                            <div id="ai-analysis-panel" class="ai-panel" style="display:none;">
+                                <div class="scanning-bar"></div>
+                                <h4><i class="fa-solid fa-robot"></i> AI Waste Analysis</h4>
+                                <div id="ai-results" style="display:none;">
+                                    <p><strong>Detected:</strong> <span id="ai-detected"></span></p>
+                                    <p><strong>Confidence:</strong> <span id="ai-confidence"></span></p>
+                                    <p><strong>Severity:</strong> <span id="ai-severity" class="badge"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="report-desc" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <div class="input-with-btn">
+                                <input type="text" id="report-location" placeholder="Address or Area" required>
+                                <button type="button" class="btn btn-secondary" onclick="getLocation()"><i class="fa-solid fa-location-crosshairs"></i> GPS</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit Report</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="view-track" class="view">
+                <header class="view-header"><h2>Track Complaint</h2></header>
+                <div class="card text-center">
+                    <div class="search-bar">
+                        <input type="text" id="track-id" placeholder="Enter Complaint ID (e.g. SW-2026-XXXX)">
+                        <button class="btn btn-primary" onclick="trackComplaint()">Track</button>
+                    </div>
+                </div>
+                <div class="card mt-2" id="tracking-result" style="display:none;">
+                    <h3 id="track-title"></h3>
+                    <div class="timeline" id="tracking-timeline"></div>
+                </div>
+            </div>
+
+            <div id="view-eco" class="view">
+                <header class="view-header"><h2>Eco Points & Awareness</h2></header>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="icon-bg green"><i class="fa-solid fa-seedling"></i></div><div class="stat-info"><h3>Your Points</h3><p id="eco-total">0</p></div></div>
+                </div>
+                <div class="grid-2 mt-2">
+                    <div class="card">
+                        <h3>Leaderboard</h3>
+                        <ul class="leaderboard-list" id="leaderboard-list"></ul>
+                    </div>
+                    <!-- UPDATED QUIZ SECTION -->
+                    <div class="card quiz-card">
+                        <h3><i class="fa-solid fa-gamepad"></i> Waste Awareness Quiz</h3>
+                        <div id="quiz-container" class="mt-2">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN VIEWS -->
+            <div id="view-admin-dashboard" class="view">
+                <header class="view-header"><h2>Admin Overview</h2></header>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="icon-bg blue"><i class="fa-solid fa-list"></i></div><div class="stat-info"><h3>Total Complaints</h3><p id="a-stat-total">0</p></div></div>
+                    <div class="stat-card"><div class="icon-bg orange"><i class="fa-solid fa-spinner"></i></div><div class="stat-info"><h3>Pending</h3><p id="a-stat-pending">0</p></div></div>
+                    <div class="stat-card"><div class="icon-bg red"><i class="fa-solid fa-fire"></i></div><div class="stat-info"><h3>Hotspots</h3><p id="a-stat-hotspots">6</p></div></div>
+                    <div class="stat-card"><div class="icon-bg green"><i class="fa-solid fa-users"></i></div><div class="stat-info"><h3>Users</h3><p id="a-stat-users">0</p></div></div>
+                </div>
+                <div class="grid-2 mt-2">
+                    <div class="card chart-container"><canvas id="chart-status"></canvas></div>
+                    <div class="card chart-container"><canvas id="chart-type"></canvas></div>
+                </div>
+                <div class="card mt-2">
+                    <h3>Manage Recent Complaints</h3>
+                    <div class="table-responsive">
+                        <table id="admin-complaints-table">
+                            <thead><tr><th>ID</th><th>Issue</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-hotspots" class="view">
+                <header class="view-header"><h2>Waste Hotspots Map</h2></header>
+                <div class="card">
+                    <div id="map" style="height: 500px; border-radius: 8px; z-index: 1;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- LANDING & AUTH VIEWS -->
+    <div id="landing-container">
+        <div id="view-landing" class="view active-view">
+            <header class="hero">
+                <div class="hero-content">
+                    <h1>Making Every Waste Problem <br><span>Visible, Trackable & Solvable.</span></h1>
+                    <p>A centralized smart waste management platform connecting citizens, collectors, and municipal administrators for cleaner cities.</p>
+                    <div class="hero-btns">
+                        <button class="btn btn-primary" onclick="showAuth('login')">Report Waste</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('how-it-works').scrollIntoView()">Explore Features</button>
+                    </div>
+                </div>
+            </header>
+            
+            <section class="stats-section">
+                <div class="stat-box"><h2>12,450+</h2><p>Resolved Issues</p></div>
+                <div class="stat-box"><h2>8,000+</h2><p>Active Citizens</p></div>
+                <div class="stat-box"><h2>45</h2><p>City Zones Covered</p></div>
+            </section>
+
+            <section id="how-it-works" class="features-section">
+                <h2>How SmartWaste Works</h2>
+                <div class="steps-grid">
+                    <div class="step-card"><div class="step-icon"><i class="fa-solid fa-camera"></i></div><h3>1. Report</h3><p>Snap a photo and let our AI analyze the waste severity.</p></div>
+                    <div class="step-card"><div class="step-icon"><i class="fa-solid fa-map-location-dot"></i></div><h3>2. Locate</h3><p>GPS tags the exact location for easy spotting.</p></div>
+                    <div class="step-card"><div class="step-icon"><i class="fa-solid fa-truck"></i></div><h3>3. Collect</h3><p>Admins route the nearest collection vehicle.</p></div>
+                    <div class="step-card"><div class="step-icon"><i class="fa-solid fa-leaf"></i></div><h3>4. Resolve</h3><p>Earn Eco Points when your reported issue is fixed!</p></div>
+                </div>
+            </section>
+            
+            <footer class="landing-footer">
+                <p>&copy; 2026 SmartWaste. Cleaner Cities. Smarter Management. Better Communities.</p>
+            </footer>
+        </div>
+
+        <div id="view-auth" class="view auth-wrapper">
+            <div class="auth-card">
+                <h2 id="auth-title">Login</h2>
+                <form id="auth-form">
+                    <div class="form-group" id="name-group" style="display:none;">
+                        <label>Full Name</label>
+                        <input type="text" id="auth-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="auth-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="auth-password" required>
+                    </div>
+                    <div class="form-group" id="role-group" style="display:none;">
+                        <label>Role</label>
+                        <select id="auth-role">
+                            <option value="citizen">Citizen</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="auth-btn">Login</button>
+                </form>
+                <div class="auth-switch">
+                    <p id="auth-switch-text">Don't have an account? <a href="#" onclick="toggleAuthMode()">Register</a></p>
+                </div>
+                <div class="demo-creds mt-2">
+                    <small><b>Demo Citizen:</b> citizen@smartwaste.com / 123456</small><br>
+                    <small><b>Demo Admin:</b> admin@smartwaste.com / admin123</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
